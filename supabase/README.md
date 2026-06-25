@@ -15,12 +15,15 @@ Supabase Dashboard → **Project Settings → API**:
 3. `migrations/0003_rag.sql`   — pgvector + bảng RAG
 4. `migrations/0004_expand_schema.sql` — **Phase 8**: 4 role + schema commerce/CMS
 5. `migrations/0005_rls_roles.sql`     — **Phase 8**: RLS theo 4 role
+6. `migrations/0006_sales_workspace_rls.sql` — Sales đọc trip/package/items liên quan booking
+7. `migrations/0007_sales_booking_actions.sql` — Ghi chú và chuyển trạng thái Sales có kiểm soát
 
-> ⚠️ **Quan trọng:** chạy `0004` xong (Run, đợi thành công) **rồi mới** chạy `0005`. Không gộp
-> 2 file vào một lần Run — Postgres không cho dùng enum value vừa `ADD VALUE` (`sales`/`editor`)
-> trong cùng transaction mà `0005` cần.
+> ⚠️ **Quan trọng:** chạy `0004` xong (Run, đợi thành công) **rồi mới** chạy `0005`, sau
+> đó chạy `0006` → `0007`. Không gộp `0004` và `0005` trong cùng transaction vì Postgres không cho
+> dùng enum value vừa `ADD VALUE` (`sales`/`editor`) ngay trong policy tham chiếu giá trị đó.
 >
-> Nếu DB đã chạy `0001–0003` từ trước (đang có data), chỉ cần chạy thêm `0004` rồi `0005` —
+> Nếu DB đã chạy `0001–0003` từ trước (đang có data), chỉ cần chạy thêm `0004` → `0005` →
+> `0006` → `0007` —
 > chúng nối tiếp, an toàn với dữ liệu cũ (`guest` → `buyer` tự đổi, `travel_products` →
 > `products`). Các lệnh đều `if not exists`/`if exists` nên chạy lại không lỗi.
 

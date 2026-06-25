@@ -48,6 +48,18 @@ export async function POST(request: Request) {
   }
 
   const aiSalesNote = await generateSalesNote(trip, { name: pkg.name, total_price: pkg.total_price });
+  const contactChannelLabels = {
+    phone: "Điện thoại",
+    zalo: "Zalo",
+    email: "Email",
+  } as const;
+  const guestNotes = [
+    `Kênh liên hệ ưu tiên: ${contactChannelLabels[input.preferred_contact_channel]}`,
+    input.special_request ? `Yêu cầu đặc biệt: ${input.special_request}` : null,
+    input.note ? `Ghi chú thêm: ${input.note}` : null,
+  ]
+    .filter(Boolean)
+    .join("\n");
 
   const { data: booking, error } = await admin
     .from("booking_requests")
@@ -59,7 +71,7 @@ export async function POST(request: Request) {
       contact_name: input.contact_name,
       contact_phone: input.contact_phone,
       contact_email: input.contact_email || null,
-      note_from_guest: input.note || null,
+      note_from_guest: guestNotes || null,
       total_price: pkg.total_price,
       ai_sales_note: aiSalesNote,
       status: "new",

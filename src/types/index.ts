@@ -32,7 +32,15 @@ export type OrderStatus =
 export type PaymentStatus = "unpaid" | "pending" | "paid_demo" | "refunded";
 export type TravelStyle = "relaxing" | "active" | "cultural" | "family";
 export type PriceUnit = "per_person" | "per_group" | "per_night" | "per_trip";
-export type SlotTime = "morning" | "afternoon" | "evening";
+export type SlotTime = "morning" | "noon" | "afternoon" | "evening";
+export type SalesNoteType =
+  | "contact_attempt"
+  | "customer_preference"
+  | "price_discussion"
+  | "partner_confirmation"
+  | "risk_warning"
+  | "follow_up"
+  | "general";
 
 export interface Profile {
   id: string;
@@ -173,7 +181,81 @@ export interface BookingRequest {
   status: BookingStatus;
   payment_status?: PaymentStatus;
   assigned_sales_id?: string | null;
+  final_price?: number | null;
+  final_price_note?: string | null;
+  final_price_confirmed_at?: string | null;
+  customer_agreed?: boolean;
+  contact_status?: ContactStatus;
+  last_contacted_at?: string | null;
   created_at: string;
+  updated_at?: string;
+}
+
+export interface BookingStatusLog {
+  id: string;
+  booking_request_id: string;
+  from_status: BookingStatus | null;
+  to_status: BookingStatus;
+  changed_by: string | null;
+  note: string | null;
+  created_at: string;
+}
+
+export type ContactStatus =
+  | "not_contacted"
+  | "contacted"
+  | "no_response"
+  | "interested"
+  | "negotiating"
+  | "confirmed"
+  | "lost";
+
+export type FollowUpType =
+  | "call_attempt"
+  | "zalo_message"
+  | "email_sent"
+  | "callback_requested"
+  | "price_discussion"
+  | "itinerary_discussion"
+  | "waiting_partner";
+
+export type FollowUpStatus = "open" | "done" | "cancelled";
+
+export interface BookingFollowUp {
+  id: string;
+  booking_request_id: string;
+  due_at: string;
+  content: string;
+  follow_up_type: FollowUpType;
+  status: FollowUpStatus;
+  result_note: string | null;
+  created_by: string | null;
+  done_by: string | null;
+  done_at: string | null;
+  created_at: string;
+}
+
+export type AvailabilityCheckCategory =
+  | "accommodation"
+  | "transport"
+  | "activity"
+  | "restaurant";
+
+export type AvailabilityCheckStatus =
+  | "pending"
+  | "available"
+  | "limited"
+  | "not_available"
+  | "replaced";
+
+export interface BookingAvailabilityCheck {
+  id: string;
+  booking_request_id: string;
+  category: AvailabilityCheckCategory;
+  status: AvailabilityCheckStatus;
+  note: string | null;
+  updated_by: string | null;
+  updated_at: string;
 }
 
 export interface Order {
@@ -203,4 +285,25 @@ export interface CartItem {
   product_id: string;
   quantity: number;
   added_at: string;
+}
+
+export interface OrderStatusLog {
+  id: string;
+  order_id: string;
+  from_status: OrderStatus | null;
+  to_status: OrderStatus;
+  changed_by: string | null;
+  note: string | null;
+  created_at: string;
+}
+
+export interface Payment {
+  id: string;
+  order_id: string;
+  amount: number;
+  method: string;
+  status: string;
+  reference: string | null;
+  paid_at: string | null;
+  created_at: string;
 }

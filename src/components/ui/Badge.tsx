@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import type { BookingStatus } from "@/types";
+import type { BookingStatus, OrderStatus, PaymentStatus } from "@/types";
 
 type Tone = "neutral" | "green" | "gold" | "amber" | "red";
 
@@ -54,4 +54,25 @@ export const bookingStatusTone: Record<BookingStatus, Tone> = {
   confirmed: "green",
   completed: "green",
   cancelled: "red",
+};
+
+/** Tone tương ứng order_status. */
+export const orderStatusTone: Record<OrderStatus, Tone> = {
+  pending_confirmation: "amber",
+  awaiting_payment: "gold",
+  paid: "green",
+  processing: "amber",
+  confirmed: "green",
+  completed: "green",
+  cancelled: "red",
+  refund_requested: "gold",
+  refunded: "neutral",
+};
+
+/** Tone tương ứng payment_status. */
+export const paymentStatusTone: Record<PaymentStatus, Tone> = {
+  unpaid: "neutral",
+  pending: "amber",
+  paid_demo: "green",
+  refunded: "neutral",
 };

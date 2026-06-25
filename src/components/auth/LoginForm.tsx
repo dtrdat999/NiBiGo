@@ -8,6 +8,7 @@ import { mapAuthError } from "@/lib/auth-errors";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { ROUTES } from "@/lib/constants";
+import { homeRouteForRole } from "@/lib/auth-routing";
 
 export function LoginForm() {
   const router = useRouter();
@@ -33,7 +34,7 @@ export function LoginForm() {
       return;
     }
 
-    // Mặc định về dashboard; nếu là admin và không có `next` → vào /admin.
+    // Không có `next` thì đưa user về đúng workspace theo role.
     let dest = next || ROUTES.dashboard;
     if (!next) {
       const {
@@ -45,7 +46,7 @@ export function LoginForm() {
           .select("role")
           .eq("id", user.id)
           .single();
-        if (profile?.role === "admin") dest = ROUTES.admin;
+        dest = homeRouteForRole(profile?.role);
       }
     }
 

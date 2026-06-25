@@ -11,6 +11,15 @@ export default async function GuestLayout({ children }: { children: ReactNode })
 
   if (!user) redirect("/login");
 
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+
+  if (profile?.role === "sales") redirect("/sales/dashboard");
+  if (profile?.role === "admin") redirect("/admin");
+
   return (
     <AuthedShell email={user.email ?? ""} variant="guest">
       {children}

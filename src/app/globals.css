@@ -16,7 +16,68 @@
   body {
     background-color: var(--brand-cream);
     color: var(--brand-ink);
+    font-family: var(--font-lora), Georgia, serif;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+    font-feature-settings: "kern" 1, "liga" 1;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+}
+
+@keyframes mascot-float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-0.25deg);
+  }
+  50% {
+    transform: translateY(-3px) rotate(0.25deg);
+  }
+}
+
+@keyframes mascot-frame {
+  from {
+    opacity: 0.82;
+    transform: scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes mascot-text {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-mascot-float {
+  animation: mascot-float 6s ease-in-out infinite;
+}
+
+.animate-mascot-frame {
+  animation: mascot-frame 700ms ease-out;
+}
+
+.animate-mascot-text {
+  animation: mascot-text 500ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-mascot-float,
+  .animate-mascot-frame,
+  .animate-mascot-text {
+    animation: none;
   }
 }

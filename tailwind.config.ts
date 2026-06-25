@@ -27,7 +27,7 @@ const config: Config = {
         },
       },
       fontFamily: {
-        sans: ["var(--font-sans)", "system-ui", "sans-serif"],
+        sans: ["var(--font-lora)", "Georgia", "serif"],
       },
       boxShadow: {
         card: "0 1px 2px rgba(20,38,31,0.04), 0 8px 24px rgba(20,38,31,0.06)",

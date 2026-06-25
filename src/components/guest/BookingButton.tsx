@@ -1,21 +1,29 @@
-"use client";
+import { ButtonLink } from "@/components/ui/Button";
+import { Icon } from "@/components/ui/Icon";
+import { ROUTES } from "@/lib/constants";
 
-import { useState } from "react";
-import { Button } from "@/components/ui/Button";
-import { Modal } from "@/components/ui/Modal";
-import { BookingForm } from "@/components/guest/BookingForm";
-
-export function BookingButton({ tourPackageId }: { tourPackageId: string }) {
-  const [open, setOpen] = useState(false);
-
+export function BookingButton({
+  tourPackageId,
+  label = "Gửi yêu cầu tư vấn",
+  size = "lg",
+  variant = "primary",
+  className = "w-full",
+}: {
+  tourPackageId: string;
+  label?: string;
+  size?: "md" | "lg";
+  variant?: "primary" | "secondary" | "ghost" | "outline";
+  className?: string;
+}) {
   return (
-    <>
-      <Button className="w-full" size="lg" onClick={() => setOpen(true)}>
-        Chọn gói &amp; gửi yêu cầu
-      </Button>
-      <Modal open={open} onClose={() => setOpen(false)} title="Gửi yêu cầu đặt tour">
-        <BookingForm tourPackageId={tourPackageId} onCancel={() => setOpen(false)} />
-      </Modal>
-    </>
+    <ButtonLink
+      href={ROUTES.bookingRequest(tourPackageId)}
+      className={className}
+      size={size}
+      variant={variant}
+    >
+      {label}
+      <Icon name="arrow-right" className="h-4 w-4" />
+    </ButtonLink>
   );
 }

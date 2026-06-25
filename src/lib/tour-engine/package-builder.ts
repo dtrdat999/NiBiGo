@@ -1,12 +1,23 @@
-import type { TravelProduct, TripRequest, PackageTier, ItineraryDay, SlotTime } from "@/types";
-import { PACKAGE_TIERS, PACKAGE_TIER_LABELS, TRAVEL_STYLE_LABELS } from "@/lib/constants";
+import type {
+  ItineraryDay,
+  PackageTier,
+  SlotTime,
+  TravelProduct,
+  TripRequest,
+} from "@/types";
+import {
+  PACKAGE_TIER_LABELS,
+  PACKAGE_TIERS,
+  TRAVEL_STYLE_LABELS,
+} from "@/lib/constants";
+import { compareItinerarySlots, normalizeItineraryDays } from "@/lib/itinerary/structure";
 import { formatVND } from "@/lib/utils";
-import { lineTotalFor, emptyBreakdown, addToBreakdown, type PricingContext } from "./pricing";
-import { packageFitScore, productRelevance } from "./scoring";
 import type { GroupedProducts } from "./filter";
+import { emptyBreakdown, addToBreakdown, lineTotalFor, type PricingContext } from "./pricing";
+import { packageFitScore, productRelevance } from "./scoring";
 import type { BuiltPackage, PricedItem } from "./types";
 
-/** Lựa chọn dịch vụ cho một gói (dùng chung cho dựng mới và chỉnh tour). */
+/** Lựa chọn dịch vụ cho một gói, dùng chung cho dựng mới và chỉnh tour. */
 export interface Selection {
   transport: TravelProduct | null;
   hotel: TravelProduct | null;
@@ -14,37 +25,46 @@ export interface Selection {
   restaurants: TravelProduct[];
 }
 
-/** Điểm chọn sản phẩm theo tier: budget ưu tiên rẻ, premium ưu tiên cao cấp. */
-function tierScore(p: TravelProduct, trip: TripRequest, tier: PackageTier, maxPrice: number): number {
-  const rel = productRelevance(p.tags, p.suitable_for, trip);
-  const priceNorm = maxPrice > 0 ? p.price / maxPrice : 0;
-  const qNorm = p.quality_score / 5;
-  const premium = p.tags.includes("premium") ? 1 : 0;
-  const budgetTag = p.tags.includes("budget") ? 1 : 0;
+function tierScore(
+  product: TravelProduct,
+  trip: TripRequest,
+  tier: PackageTier,
+  maxPrice: number,
+) {
+  const relevance = productRelevance(product.tags, product.suitable_for, trip);
+  const priceNorm = maxPrice > 0 ? product.price / maxPrice : 0;
+  const qualityNorm = product.quality_score / 5;
+  const premium = product.tags.includes("premium") ? 1 : 0;
+  const budgetTag = product.tags.includes("budget") ? 1 : 0;
 
-  if (tier === "budget") return rel * 0.4 + (1 - priceNorm) * 0.5 + budgetTag * 0.1;
-  if (tier === "premium") return rel * 0.35 + qNorm * 0.4 + premium * 0.25;
-  return rel * 0.55 + qNorm * 0.25 + (1 - priceNorm) * 0.2; // balanced
+  if (tier === "budget") return relevance * 0.4 + (1 - priceNorm) * 0.5 + budgetTag * 0.1;
+  if (tier === "premium") return relevance * 0.35 + qualityNorm * 0.4 + premium * 0.25;
+
+  return relevance * 0.55 + qualityNorm * 0.25 + (1 - priceNorm) * 0.2;
 }
 
-function pickTop(list: TravelProduct[], trip: TripRequest, tier: PackageTier, n: number): TravelProduct[] {
-  if (!list.length || n <= 0) return [];
-  const maxPrice = Math.max(...list.map((p) => p.price));
+function pickTop(
+  list: TravelProduct[],
+  trip: TripRequest,
+  tier: PackageTier,
+  count: number,
+) {
+  if (!list.length || count <= 0) return [];
+
+  const maxPrice = Math.max(...list.map((product) => product.price));
   return [...list]
     .sort((a, b) => tierScore(b, trip, tier, maxPrice) - tierScore(a, trip, tier, maxPrice))
-    .slice(0, n);
+    .slice(0, count);
 }
 
-function activityCount(numDays: number, style: string | null): number {
+function activityCount(numDays: number, style: string | null) {
   const perDay = style === "active" ? 2 : style === "relaxing" ? 1.2 : 1.6;
   return Math.max(2, Math.round(perDay * numDays));
 }
 
-function mealCount(numDays: number): number {
+function mealCount(numDays: number) {
   return Math.max(1, Math.round(1.3 * numDays));
 }
-
-const SLOT_ORDER: Record<SlotTime, number> = { morning: 0, afternoon: 1, evening: 2 };
 
 export function pricingContext(trip: TripRequest): PricingContext {
   return {
@@ -54,17 +74,16 @@ export function pricingContext(trip: TripRequest): PricingContext {
   };
 }
 
-/** Phân bổ sản phẩm vào ngày/slot + tạo itinerary template (Phase 6 LLM viết lại). */
 function buildItineraryAndItems(
-  sel: Selection,
+  selection: Selection,
   trip: TripRequest,
   ctx: PricingContext,
 ): { items: PricedItem[]; itinerary: ItineraryDay[] } {
   const days = Math.max(1, trip.num_days);
   const nights = Math.max(1, trip.num_nights || days - 1);
-  const itinerary: ItineraryDay[] = Array.from({ length: days }, (_, i) => ({
-    day: i + 1,
-    title: `Ngày ${i + 1}`,
+  const itinerary: ItineraryDay[] = Array.from({ length: days }, (_, index) => ({
+    day: index + 1,
+    title: `Ngày ${index + 1}`,
     slots: [],
   }));
   const items: PricedItem[] = [];
@@ -72,86 +91,104 @@ function buildItineraryAndItems(
 
   const addItem = (product: TravelProduct, day: number, slot: SlotTime) => {
     const { quantity, unit_price, line_total } = lineTotalFor(product, ctx);
-    items.push({ product, day_number: day, slot, quantity, unit_price, line_total, sort_order: sort++ });
+    items.push({
+      product,
+      day_number: day,
+      slot,
+      quantity,
+      unit_price,
+      line_total,
+      sort_order: sort++,
+    });
   };
 
-  if (sel.transport) {
-    addItem(sel.transport, 1, "morning");
+  if (selection.transport) {
+    addItem(selection.transport, 1, "morning");
     itinerary[0].slots.push({
       time: "morning",
-      product_id: sel.transport.id,
-      description: `Khởi hành từ Hà Nội đi Ninh Bình — ${sel.transport.name}`,
+      product_id: selection.transport.id,
+      description: `Khởi hành đi Ninh Bình — ${selection.transport.name}`,
     });
   }
 
-  if (sel.hotel) {
-    addItem(sel.hotel, 1, "evening");
-    for (let d = 1; d <= Math.min(nights, days); d++) {
-      itinerary[d - 1].slots.push({
+  if (selection.hotel) {
+    addItem(selection.hotel, 1, "evening");
+    for (let day = 1; day <= Math.min(nights, days); day++) {
+      itinerary[day - 1].slots.push({
         time: "evening",
-        product_id: sel.hotel.id,
-        description: d === 1 ? `Nhận phòng & nghỉ tại ${sel.hotel.name}` : `Nghỉ tại ${sel.hotel.name}`,
+        product_id: selection.hotel.id,
+        description:
+          day === 1
+            ? `Nhận phòng và nghỉ tại ${selection.hotel.name}`
+            : `Nghỉ tại ${selection.hotel.name}`,
       });
     }
   }
 
-  sel.activities.forEach((a, i) => {
-    const day = (i % days) + 1;
-    const slot: SlotTime = i % 2 === 0 ? "morning" : "afternoon";
-    addItem(a, day, slot);
+  selection.activities.forEach((activity, index) => {
+    const day = (index % days) + 1;
+    const slot: SlotTime = index % 2 === 0 ? "morning" : "afternoon";
+    addItem(activity, day, slot);
     itinerary[day - 1].slots.push({
       time: slot,
-      product_id: a.id,
-      description: `Tham quan & trải nghiệm ${a.name}`,
+      product_id: activity.id,
+      description: `Tham quan và trải nghiệm ${activity.name}`,
     });
   });
 
-  sel.restaurants.forEach((r, i) => {
-    const day = (i % days) + 1;
-    addItem(r, day, "evening");
+  selection.restaurants.forEach((restaurant, index) => {
+    const day = (index % days) + 1;
+    const slot: SlotTime = index % 2 === 0 ? "noon" : "evening";
+    addItem(restaurant, day, slot);
     itinerary[day - 1].slots.push({
-      time: "evening",
-      product_id: r.id,
-      description: `Ẩm thực: ${r.name}`,
+      time: slot,
+      product_id: restaurant.id,
+      description: slot === "noon" ? `Ăn trưa: ${restaurant.name}` : `Ăn tối: ${restaurant.name}`,
     });
   });
 
-  for (const d of itinerary) d.slots.sort((a, b) => SLOT_ORDER[a.time] - SLOT_ORDER[b.time]);
-  return { items, itinerary };
+  for (const day of itinerary) {
+    day.slots.sort(compareItinerarySlots);
+  }
+
+  return { items, itinerary: normalizeItineraryDays(itinerary, days) };
 }
 
-function tierName(tier: PackageTier, trip: TripRequest): string {
+function tierName(tier: PackageTier, trip: TripRequest) {
   const span = `${trip.num_days}N${trip.num_nights}Đ`;
   if (tier === "budget") return `Ninh Bình Tiết Kiệm ${span}`;
   if (tier === "premium") return `Ninh Bình Trải Nghiệm ${span}`;
   return `Ninh Bình Cân Bằng ${span}`;
 }
 
-function tierReason(tier: PackageTier, trip: TripRequest, total: number): string {
+function tierReason(tier: PackageTier, trip: TripRequest, total: number) {
   const styleLabel = trip.travel_style
-    ? (TRAVEL_STYLE_LABELS[trip.travel_style as keyof typeof TRAVEL_STYLE_LABELS] ?? trip.travel_style)
+    ? (TRAVEL_STYLE_LABELS[trip.travel_style as keyof typeof TRAVEL_STYLE_LABELS] ??
+      trip.travel_style)
     : "phù hợp";
   const blurb =
     tier === "budget"
-      ? "tối ưu chi phí mà vẫn giữ các trải nghiệm chính."
+      ? "tối ưu chi phí nhưng vẫn giữ các trải nghiệm chính."
       : tier === "premium"
-        ? "ưu tiên nghỉ dưỡng và dịch vụ cao cấp."
-        : "cân bằng giữa chi phí và trải nghiệm.";
+        ? "ưu tiên trải nghiệm đẹp và dịch vụ tốt hơn."
+        : "cân bằng giữa chi phí, nhịp đi và trải nghiệm.";
+
   return `Gói ${PACKAGE_TIER_LABELS[tier]} cho ${trip.num_people} khách, phong cách ${styleLabel} — tổng dự kiến ${formatVND(total)}, ${blurb}`;
 }
 
-/** Lắp 1 gói hoàn chỉnh từ Selection (giá + fit + itinerary template). */
 export function assemblePackage(
   tier: PackageTier,
-  sel: Selection,
+  selection: Selection,
   trip: TripRequest,
 ): BuiltPackage | null {
   const ctx = pricingContext(trip);
-  const { items, itinerary } = buildItineraryAndItems(sel, trip, ctx);
+  const { items, itinerary } = buildItineraryAndItems(selection, trip, ctx);
   if (items.length === 0) return null;
 
   const breakdown = emptyBreakdown();
-  for (const it of items) addToBreakdown(breakdown, it.product.type, it.line_total);
+  for (const item of items) {
+    addToBreakdown(breakdown, item.product.type, item.line_total);
+  }
 
   return {
     tier,
@@ -162,25 +199,32 @@ export function assemblePackage(
     itinerary,
     cost_breakdown: breakdown,
     conditions: [
-      "Giá là dự kiến — cần admin/sales xác nhận",
-      "Tùy tình trạng chỗ thực tế khi đặt",
+      "Chi phí đang là dự kiến và sẽ được kiểm tra lại trước khi bạn quyết định đặt",
+      "Tình trạng còn chỗ có thể thay đổi theo thời điểm gửi yêu cầu",
     ],
     items,
   };
 }
 
-/** Dựng 3 gói (budget / balanced / premium) từ kho dịch vụ đã lọc. */
 export function buildThreePackages(trip: TripRequest, grouped: GroupedProducts): BuiltPackage[] {
   const packages: BuiltPackage[] = [];
+
   for (const tier of PACKAGE_TIERS) {
-    const sel: Selection = {
+    const selection: Selection = {
       transport: pickTop(grouped.transport, trip, tier, 1)[0] ?? null,
       hotel: pickTop(grouped.hotel, trip, tier, 1)[0] ?? null,
-      activities: pickTop(grouped.activity, trip, tier, activityCount(trip.num_days, trip.travel_style)),
+      activities: pickTop(
+        grouped.activity,
+        trip,
+        tier,
+        activityCount(trip.num_days, trip.travel_style),
+      ),
       restaurants: pickTop(grouped.restaurant, trip, tier, mealCount(trip.num_days)),
     };
-    const pkg = assemblePackage(tier, sel, trip);
+
+    const pkg = assemblePackage(tier, selection, trip);
     if (pkg) packages.push(pkg);
   }
+
   return packages;
 }

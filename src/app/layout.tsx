@@ -1,17 +1,17 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Lora } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({
+const lora = Lora({
   subsets: ["latin", "vietnamese"],
-  variable: "--font-sans",
+  variable: "--font-lora",
   display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "NiBiGo AI Travel Platform — Lập kế hoạch tour Ninh Bình cá nhân hóa",
+  title: "NiBiGo AI Planner — Tạo tour Ninh Bình rõ lịch trình, rõ chi phí",
   description:
-    "Tạo tour Ninh Bình trọn gói cá nhân hóa theo ngân sách, sở thích và thành phần đoàn. Lịch trình rõ ràng, chi phí minh bạch, chỉnh tour bằng AI.",
+    "Tạo phương án tour Ninh Bình theo ngân sách, sở thích và thành phần đoàn. Xem 3 gói gợi ý, chi phí minh bạch và gửi yêu cầu để Sales xác nhận trước khi đặt.",
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
 };
 
@@ -19,8 +19,8 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="vi" className={inter.variable}>
-      <body className="min-h-screen font-sans antialiased">{children}</body>
+    <html lang="vi" className={lora.variable}>
+      <body className={`${lora.className} min-h-screen antialiased`}>{children}</body>
     </html>
   );
 }

@@ -3,7 +3,7 @@ import { PACKAGE_TIERS, PRODUCT_TYPES } from "@/lib/constants";
 
 /** Schema output LLM khi viết itinerary/lý do (AI_DESIGN §7.2). */
 export const aiSlotSchema = z.object({
-  time: z.enum(["morning", "afternoon", "evening"]),
+  time: z.enum(["morning", "noon", "afternoon", "evening"]),
   product_id: z.string(),
   description: z.string(),
 });

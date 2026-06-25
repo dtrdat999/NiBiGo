@@ -7,7 +7,7 @@ export default function NotFound() {
       <p className="text-7xl font-extrabold text-brand-green">404</p>
       <h1 className="mt-4 text-2xl font-bold text-brand-ink">Không tìm thấy trang</h1>
       <p className="mt-2 max-w-md text-brand-muted">
-        Trang bạn tìm chưa tồn tại — hoặc đang được xây dựng ở một phase tiếp theo.
+        Trang bạn tìm chưa tồn tại hoặc đang được xây dựng.
       </p>
       <div className="mt-8 flex flex-wrap justify-center gap-3">
         <ButtonLink href={ROUTES.home}>Về trang chủ</ButtonLink>

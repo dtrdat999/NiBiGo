@@ -9,7 +9,9 @@ export default function LoginPage() {
     <>
       <div className="mb-6 text-center">
         <h1 className="text-2xl font-bold text-brand-ink">Chào mừng trở lại</h1>
-        <p className="mt-1 text-sm text-brand-muted">Đăng nhập để tiếp tục lập kế hoạch.</p>
+        <p className="mt-1 text-sm text-brand-muted">
+          Đăng nhập để tiếp tục vào không gian làm việc của bạn.
+        </p>
       </div>
       <Suspense fallback={<div className="h-64" />}>
         <LoginForm />

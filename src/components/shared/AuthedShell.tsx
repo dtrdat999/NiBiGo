@@ -1,7 +1,9 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Container } from "@/components/ui/Container";
-import { APP_NAME, ROUTES } from "@/lib/constants";
+import { BrandLogo } from "@/components/brand/BrandLogo";
+import { ROUTES } from "@/lib/constants";
+import { BuyerNavigation } from "@/components/shared/BuyerNavigation";
 
 type Variant = "guest" | "admin";
 
@@ -27,24 +29,28 @@ export function AuthedShell({
   variant?: Variant;
   children: ReactNode;
 }) {
+  if (variant === "guest") {
+    return (
+      <div className="flex min-h-screen flex-col">
+        <BuyerNavigation email={email} />
+        <main className="flex-1 bg-brand-cream pb-24 lg:pb-0">
+          <Container className="py-5 sm:py-8">{children}</Container>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen flex-col">
       <header className="border-b border-black/5 bg-white">
         <Container className="flex h-16 items-center justify-between gap-4">
           <div className="flex items-center gap-6">
-            <Link href={ROUTES.home} className="flex items-center gap-2">
-              <span className="grid h-8 w-8 place-items-center rounded-full bg-brand-green text-sm font-bold text-white">
-                Ni
+            <div className="flex items-center gap-2">
+              <BrandLogo />
+              <span className="hidden rounded-full bg-brand-gold-soft px-2 py-0.5 text-xs font-semibold text-brand-gold sm:inline">
+                Admin
               </span>
-              <span className="hidden text-sm font-bold text-brand-ink sm:inline">
-                {APP_NAME}
-                {variant === "admin" && (
-                  <span className="ml-2 rounded-full bg-brand-gold-soft px-2 py-0.5 text-xs font-semibold text-brand-gold">
-                    Admin
-                  </span>
-                )}
-              </span>
-            </Link>
+            </div>
             <nav className="flex items-center gap-5 text-sm font-medium text-brand-muted">
               {NAV[variant].map((item) =>
                 item.ready ? (

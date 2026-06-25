@@ -239,7 +239,7 @@ const ItinerarySchema = z.object({
     day: z.number(),
     title: z.string(),
     slots: z.array(z.object({
-      time: z.enum(['morning', 'afternoon', 'evening']),
+      time: z.enum(['morning', 'noon', 'afternoon', 'evening']),
       product_id: z.string(),              // PHẢI thuộc candidate
       description: z.string()              // mô tả trải nghiệm (không nêu giá)
     }))

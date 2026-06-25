@@ -2,20 +2,29 @@ import "server-only";
 import { getAIProvider, isAIConfigured } from "./provider";
 import { NIBI_SYSTEM, buildEnrichmentPrompt } from "./prompts";
 import { aiResponseSchema } from "@/lib/validation/ai";
+import { normalizeItineraryDays } from "@/lib/itinerary/structure";
+import { sanitizeBookingPolicyCopy } from "@/lib/product-policy";
 import type { BuiltPackage } from "@/lib/tour-engine/types";
-import type { TripRequest, ItineraryDay } from "@/types";
+import type { ItineraryDay, TripRequest } from "@/types";
 
 /**
- * Để LLM viết name/recommendation_reason/itinerary cho 3 gói.
- * GIỮ NGUYÊN total_price, cost_breakdown, items (backend đã tính).
- * Bất kỳ lỗi nào → trả lại gói template (fallback an toàn).
+ * Để LLM viết name/recommendation_reason/itinerary cho các gói.
+ * Giá, cost breakdown và items luôn giữ nguyên từ engine.
  */
 export async function enrichPackagesWithAI(
   packages: BuiltPackage[],
   trip: TripRequest,
   ragContext: string,
 ): Promise<BuiltPackage[]> {
-  if (!isAIConfigured() || packages.length === 0) return packages;
+  const safeFallback = packages.map((pkg) => ({
+    ...pkg,
+    name: sanitizeBookingPolicyCopy(pkg.name),
+    recommendation_reason: sanitizeBookingPolicyCopy(pkg.recommendation_reason),
+    conditions: pkg.conditions.map((condition) => sanitizeBookingPolicyCopy(condition)),
+    itinerary: normalizeItineraryDays(pkg.itinerary, trip.num_days),
+  }));
+
+  if (!isAIConfigured() || packages.length === 0) return safeFallback;
 
   try {
     const provider = getAIProvider();
@@ -28,29 +37,45 @@ export async function enrichPackagesWithAI(
     });
 
     return packages.map((pkg) => {
-      const ai = result.packages.find((p) => p.tier === pkg.tier);
-      if (!ai) return pkg;
+      const ai = result.packages.find((item) => item.tier === pkg.tier);
+      if (!ai) {
+        return {
+          ...pkg,
+          itinerary: normalizeItineraryDays(pkg.itinerary, trip.num_days),
+        };
+      }
 
-      // Chống bịa: chỉ giữ slot tham chiếu product_id thuộc đúng gói này.
-      const validIds = new Set(pkg.items.map((it) => it.product.id));
+      const validIds = new Set(pkg.items.map((item) => item.product.id));
       const itinerary: ItineraryDay[] = ai.itinerary
         .map((day) => ({
           day: day.day,
-          title: day.title,
-          slots: day.slots.filter((s) => validIds.has(s.product_id)),
+          title: sanitizeBookingPolicyCopy(day.title),
+          slots: day.slots
+            .filter((slot) => validIds.has(slot.product_id))
+            .map((slot) => ({
+              ...slot,
+              description: sanitizeBookingPolicyCopy(slot.description),
+            })),
         }))
         .filter((day) => day.slots.length > 0);
 
       return {
-        ...pkg, // total_price, cost_breakdown, items, fit_score, tier giữ nguyên
-        name: ai.name?.trim() || pkg.name,
-        recommendation_reason: ai.recommendation_reason?.trim() || pkg.recommendation_reason,
-        conditions: ai.conditions?.length ? ai.conditions : pkg.conditions,
-        itinerary: itinerary.length ? itinerary : pkg.itinerary,
+        ...pkg,
+        name: sanitizeBookingPolicyCopy(ai.name?.trim()) || pkg.name,
+        recommendation_reason:
+          sanitizeBookingPolicyCopy(ai.recommendation_reason?.trim()) ||
+          pkg.recommendation_reason,
+        conditions: (ai.conditions?.length ? ai.conditions : pkg.conditions).map((condition) =>
+          sanitizeBookingPolicyCopy(condition),
+        ),
+        itinerary: normalizeItineraryDays(
+          itinerary.length ? itinerary : pkg.itinerary,
+          trip.num_days,
+        ),
       };
     });
   } catch (err) {
-    console.error("[AI] enrich thất bại — dùng itinerary template:", err);
-    return packages;
+    console.error("[AI] enrich failed, using safe itinerary template:", err);
+    return safeFallback;
   }
 }

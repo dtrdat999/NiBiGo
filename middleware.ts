@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 /**
  * Refresh session + chặn route cần đăng nhập.
- * Kiểm tra role admin được thực hiện ở (admin)/layout.tsx (server) để tránh
+ * Kiểm tra role theo workspace được thực hiện ở layout server để tránh
  * truy vấn DB trong edge middleware mỗi request.
  */
 export async function middleware(request: NextRequest) {
@@ -54,6 +54,8 @@ export const config = {
     "/proposals/:path*",
     "/tour/:path*",
     "/bookings/:path*",
+    "/booking-request/:path*",
+    "/sales/:path*",
     "/admin/:path*",
   ],
 };

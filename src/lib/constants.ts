@@ -10,10 +10,26 @@ export const ROUTES = {
   login: "/login",
   register: "/register",
   dashboard: "/dashboard",
+  explore: "/explore",
+  products: "/products",
+  product: (id: string) => `/products/${id}`,
   plan: "/plan",
   proposals: (requestId: string) => `/proposals/${requestId}`,
   tour: (packageId: string) => `/tour/${packageId}`,
+  bookingRequest: (packageId: string) => `/booking-request/${packageId}`,
+  bookings: "/bookings",
   booking: (code: string) => `/bookings/${code}`,
+  cart: "/cart",
+  orders: "/orders",
+  order: (code: string) => `/orders/${code}`,
+  salesDashboard: "/sales/dashboard",
+  salesBookings: "/sales/bookings",
+  salesBooking: (id: string) => `/sales/bookings/${id}`,
+  salesOrders: "/sales/orders",
+  salesOrder: (id: string) => `/sales/orders/${id}`,
+  salesNotes: "/sales/notes",
+  salesAiNotes: "/sales/ai-notes",
+  salesProfile: "/sales/profile",
   admin: "/admin",
   adminBookings: "/admin/bookings",
   adminProducts: "/admin/products",
@@ -142,6 +158,106 @@ export const AVAILABILITY_LABELS: Record<(typeof AVAILABILITY_STATUSES)[number],
   limited: "Sắp hết",
   sold_out: "Hết chỗ",
   need_confirmation: "Cần xác nhận",
+};
+
+/** Nhóm dịch vụ trong Availability Checklist (Sales). */
+export const AVAILABILITY_CHECK_CATEGORIES = [
+  "accommodation",
+  "transport",
+  "activity",
+  "restaurant",
+] as const;
+
+export const AVAILABILITY_CHECK_CATEGORY_LABELS: Record<
+  (typeof AVAILABILITY_CHECK_CATEGORIES)[number],
+  string
+> = {
+  accommodation: "Lưu trú",
+  transport: "Di chuyển",
+  activity: "Hoạt động / Tour",
+  restaurant: "Ăn uống",
+};
+
+export const AVAILABILITY_CHECK_STATUSES = [
+  "pending",
+  "available",
+  "limited",
+  "not_available",
+  "replaced",
+] as const;
+
+export const AVAILABILITY_CHECK_STATUS_LABELS: Record<
+  (typeof AVAILABILITY_CHECK_STATUSES)[number],
+  string
+> = {
+  pending: "Chưa kiểm tra",
+  available: "Còn phục vụ",
+  limited: "Còn ít / cần xác nhận nhanh",
+  not_available: "Không khả dụng",
+  replaced: "Đã thay thế",
+};
+
+/** Nhãn loại ghi chú nội bộ của Sales (dùng chung). */
+export const SALES_NOTE_TYPES = [
+  "contact_attempt",
+  "customer_preference",
+  "price_discussion",
+  "partner_confirmation",
+  "risk_warning",
+  "follow_up",
+  "general",
+] as const;
+
+export const SALES_NOTE_TYPE_LABELS: Record<(typeof SALES_NOTE_TYPES)[number], string> = {
+  contact_attempt: "Lần liên hệ",
+  customer_preference: "Nhu cầu sau trao đổi",
+  price_discussion: "Trao đổi về chi phí",
+  partner_confirmation: "Xác nhận với đối tác",
+  risk_warning: "Rủi ro cần lưu ý",
+  follow_up: "Việc cần theo dõi",
+  general: "Ghi chú chung",
+};
+
+/** Trạng thái liên hệ khách (Contact & Follow-up). */
+export const CONTACT_STATUSES = [
+  "not_contacted",
+  "contacted",
+  "no_response",
+  "interested",
+  "negotiating",
+  "confirmed",
+  "lost",
+] as const;
+
+export const CONTACT_STATUS_LABELS: Record<(typeof CONTACT_STATUSES)[number], string> = {
+  not_contacted: "Chưa liên hệ",
+  contacted: "Đã liên hệ",
+  no_response: "Chưa phản hồi",
+  interested: "Khách quan tâm",
+  negotiating: "Đang trao đổi",
+  confirmed: "Khách đồng ý",
+  lost: "Không tiếp tục",
+};
+
+/** Loại follow-up (§7.5). */
+export const FOLLOW_UP_TYPES = [
+  "call_attempt",
+  "zalo_message",
+  "email_sent",
+  "callback_requested",
+  "price_discussion",
+  "itinerary_discussion",
+  "waiting_partner",
+] as const;
+
+export const FOLLOW_UP_TYPE_LABELS: Record<(typeof FOLLOW_UP_TYPES)[number], string> = {
+  call_attempt: "Gọi điện",
+  zalo_message: "Nhắn Zalo",
+  email_sent: "Gửi email",
+  callback_requested: "Khách hẹn gọi lại",
+  price_discussion: "Trao đổi giá",
+  itinerary_discussion: "Trao đổi lịch trình",
+  waiting_partner: "Chờ đối tác xác nhận",
 };
 
 /** Nhãn tiếng Việt cho loại sản phẩm (UI). */

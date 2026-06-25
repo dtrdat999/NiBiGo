@@ -41,3 +41,31 @@ export async function requireAdmin() {
   }
   return { supabase, user, response: null as NextResponse | null };
 }
+
+/** Yêu cầu user thuộc Sales workspace. Admin được phép hỗ trợ vận hành Sales. */
+export async function requireSales() {
+  const { supabase, user, response } = await requireUser();
+  if (response) return { supabase, user, profile: null, response };
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id, email, full_name, phone, role, avatar_url")
+    .eq("id", user!.id)
+    .single();
+
+  if (profile?.role !== "sales" && profile?.role !== "admin") {
+    return {
+      supabase,
+      user,
+      profile,
+      response: NextResponse.json({ error: "Không có quyền truy cập Sales" }, { status: 403 }),
+    };
+  }
+
+  return {
+    supabase,
+    user,
+    profile,
+    response: null as NextResponse | null,
+  };
+}

@@ -18,6 +18,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     .single();
 
   // Defense-in-depth: chặn không phải admin ngay ở server (kèm middleware + RLS).
+  if (profile?.role === "sales") redirect("/sales/dashboard");
   if (profile?.role !== "admin") redirect("/dashboard");
 
   return (
